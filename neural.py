@@ -1,5 +1,5 @@
 """
-eed Forward Neural Network class based on the book by Michael A. Nielsen, 
+Feed Forward Neural Network class based on the book by Michael A. Nielsen, 
 "Neural Networks and Deep Learning", Determination Press, 2015
 """
 
@@ -47,7 +47,22 @@ class NNet:
         -------
         A tuple with the changes in weights and biases
         """
-        pass
+        gradient_bias = [np.zeros(b) for b in self.biases]
+        gradient_weight = [np.zeros(w) for w in self.weights]
+
+        # compounding the changes in weights for every
+        #training element
+        # TODO: -------------> Finish <-------------
+        for x, y in mini_batch:
+            change_bias, change_weight = self.backpropagate(x, y)
+
+            gradient_bias = [grad_bias + change_grad_bias for
+                             grad_bias, change_grad_bias in
+                             zip(gradient_bias, change_bias)]
+            
+            gradient_weight = [grad_weight + change_grad_weight for
+                             grad_weight, change_grad_weight in
+                             zip(gradient_weight, change_weight)]
 
     def cost_deriv(self, output, target):
         #TODO: Add different cost functions
@@ -88,13 +103,22 @@ class NNet:
         # We first compute the outermost delta factor which involves computing
         # the change in error w.r.t. the output times the change in the
         # output w.r.t. the input at that layer (z terms)
-        change_error_wrt_output = self.cost_deriv(targets, activations[-1])
-        change_output_wrt_input = sigmoid_prime(zs[-1])
-        delta = change_error_wrt_output * change_output_wrt_input 
-        print(delta.shape)
-        print(activations[-2].T.shape)
-        gradient_bias[-1] = delta
-        #gradient_weight[-1] = delta * 
+
+        for l in range(1,self.layers_len):
+            change_output_wrt_input = sigmoid_prime(zs[-l])
+            if l == 1:
+                # If we are at the ouput layer
+                change_error_wrt_output = self.cost_deriv(targets, activations[-l])
+                delta = change_error_wrt_output * change_output_wrt_input
+            else:
+                # If we are in every other hidden layer
+                delta = (self.weights[-l + 1].T @ delta) * change_output_wrt_input
+
+            gradient_bias[-l] = delta
+            gradient_weight[-l] = delta @ activations[-(l+1)].T
+
+        return gradient_bias, gradient_weight
+
 
 if __name__ == "__main__":
     #train_data = np.array([1, 1], ndmin=2).T
@@ -103,4 +127,4 @@ if __name__ == "__main__":
     output_train = data[:, -1:].T
 
     net = NNet([2, 3, 1], set_seed=23)
-    net.backpropagate(input_train, output_train)
+    net.backpropagate(input_train[:, 0:1], output_train[:, 0:1])
