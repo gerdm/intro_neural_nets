@@ -4,7 +4,7 @@ Feed Forward Neural Network class based on the book by Michael A. Nielsen,
 """
 
 import numpy as np
-from numpy.random import randn, seed
+from numpy.random import randn, seed, shuffle
 from numpy import vectorize
 from numpy import ones, exp
 
@@ -38,6 +38,30 @@ class NNet:
         
         return inputs
 
+    def make_mini_batches(self,training_data, len_batch):
+        n= len(training_data)
+        shuffle(training_data)
+        mini_batches = [training_data[ix: ix + len_batch]
+                        for ix in range(0, n, len_batch)]
+        return mini_batches
+
+    def SGD(self, training_data, epochs, mini_batch_size,
+            alpha, test_data=None):
+        # If there is test data, define the test_data
+        if test_data: n_test = len(test_data)
+        n = len(training_data)
+
+        for epoch in range(epochs):
+            mini_batches = self.make_mini_batches(training_data, mini_batch_size)
+            for batch in mini_batches:
+                self.update_mini_batch(batch, alpha)
+            if test_data:
+                correct = self.evaluate(test_data)
+                print("Epoch {}: {} / {}".format(epoch, correct, n_test))
+            else:
+                # Print end of training
+                print("Epoch {} / {}".format(epoch+1, epochs))
+
     def update_mini_batch(self, mini_batch, alpha):
         """
         Update a mini batch training set applying
@@ -47,12 +71,11 @@ class NNet:
         -------
         A tuple with the changes in weights and biases
         """
-        gradient_bias = [np.zeros(b) for b in self.biases]
-        gradient_weight = [np.zeros(w) for w in self.weights]
+        gradient_bias = [np.zeros(b.shape) for b in self.biases]
+        gradient_weight = [np.zeros(w.shape) for w in self.weights]
 
         # compounding the changes in weights for every
-        #training element
-        # TODO: -------------> Finish <-------------
+        # training element
         for x, y in mini_batch:
             change_bias, change_weight = self.backpropagate(x, y)
 
@@ -63,6 +86,14 @@ class NNet:
             gradient_weight = [grad_weight + change_grad_weight for
                              grad_weight, change_grad_weight in
                              zip(gradient_weight, change_weight)]
+
+        # Update weights and biases
+        nbatch = len(mini_batch)
+        self.weights = [w - alpha / nbatch * grad_w for w, grad_w
+                        in zip(self.weights, gradient_weight)]
+        self.biases = [b - alpha / nbatch * grad_b for b, grad_b
+                        in zip(self.biases, gradient_bias)]
+
 
     def cost_deriv(self, output, target):
         #TODO: Add different cost functions
@@ -108,7 +139,7 @@ class NNet:
             change_output_wrt_input = sigmoid_prime(zs[-l])
             if l == 1:
                 # If we are at the ouput layer
-                change_error_wrt_output = self.cost_deriv(targets, activations[-l])
+                change_error_wrt_output = self.cost_deriv(activations[-l], targets)
                 delta = change_error_wrt_output * change_output_wrt_input
             else:
                 # If we are in every other hidden layer
@@ -119,12 +150,17 @@ class NNet:
 
         return gradient_bias, gradient_weight
 
+    def evaluate(self, test_data):
+        results = [(np.argmax(self.forwardpropagate(x)), np.argmax(y)) for
+                   (x, y) in test_data]
+
+        return sum([int(x == y) for (x, y) in results])
+
 
 if __name__ == "__main__":
-    #train_data = np.array([1, 1], ndmin=2).T
-    data = np.load("train.npy")
-    input_train = data[:, :-1].T
-    output_train = data[:, -1:].T
+    import pickle
+    with open("train.pkl", "rb") as file:
+        train_data= pickle.load(file)
 
-    net = NNet([2, 3, 1], set_seed=23)
-    net.backpropagate(input_train[:, 0:1], output_train[:, 0:1])
+    net = NNet([2, 3, 2], set_seed=23)
+    net.SGD(train_data, 10, 50, 0.1)
