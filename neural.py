@@ -57,10 +57,10 @@ class NNet:
                 self.update_mini_batch(batch, alpha)
             if test_data:
                 correct = self.evaluate(test_data)
-                print("Epoch {}: {} / {}".format(epoch, correct, n_test))
+                print(f"Epoch {epoch + 1}: {correct} / {n_test}, ({correct / n_test:0.4f})", end="\r")
             else:
                 # Print end of training
-                print("Epoch {} / {}".format(epoch+1, epochs))
+                print(f"Epoch {epoch + 1} / {epochs}")
 
     def update_mini_batch(self, mini_batch, alpha):
         """
@@ -162,5 +162,8 @@ if __name__ == "__main__":
     with open("train.pkl", "rb") as file:
         train_data= pickle.load(file)
 
+    with open("test.pkl", "rb") as file:
+        test_data = pickle.load(file)
+
     net = NNet([2, 3, 2], set_seed=23)
-    net.SGD(train_data, 10, 50, 0.1)
+    net.SGD(train_data, 100, 13, 0.03, test_data)
