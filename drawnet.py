@@ -39,5 +39,5 @@ def draw_neural_net(ax, left, right, bottom, top, layer_sizes):
         for m in range(layer_size_a):
             for o in range(layer_size_b):
                 line = plt.Line2D([n*h_spacing + left, (n + 1)*h_spacing + left],
-                                  [layer_top_a - m*v_spacing, layer_top_b - o*v_spacing], c='k')
+                                  [layer_top_a - m*v_spacing, layer_top_b - o*v_spacing], c='k', linewidth=0.3)
                 ax.add_artist(line)
